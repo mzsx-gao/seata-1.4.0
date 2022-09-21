@@ -72,6 +72,7 @@ public class ExecuteTemplate {
         }
 
         String dbType = statementProxy.getConnectionProxy().getDbType();
+        //这里用到了sql识别器
         if (CollectionUtils.isEmpty(sqlRecognizers)) {
             sqlRecognizers = SQLVisitorFactory.get(
                     statementProxy.getTargetSQL(),
@@ -83,6 +84,7 @@ public class ExecuteTemplate {
         } else {
             if (sqlRecognizers.size() == 1) {
                 SQLRecognizer sqlRecognizer = sqlRecognizers.get(0);
+                //根据不同的sql类型选择相应的执行器
                 switch (sqlRecognizer.getSQLType()) {
                     case INSERT:
                         executor = EnhancedServiceLoader.load(InsertExecutor.class, dbType,

@@ -65,17 +65,22 @@ public abstract class AbstractCore implements Core {
 
     public abstract BranchType getHandleBranchType();
 
+    // 注册分支事务
     @Override
     public Long branchRegister(BranchType branchType, String resourceId, String clientId, String xid,
                                String applicationData, String lockKeys) throws TransactionException {
+        // 获取GlobalSession
         GlobalSession globalSession = assertGlobalSessionNotNull(xid, false);
         return SessionHolder.lockAndExecute(globalSession, () -> {
             globalSessionStatusCheck(globalSession);
             globalSession.addSessionLifecycleListener(SessionHolder.getRootSessionManager());
+            // 创建BranchSession
             BranchSession branchSession = SessionHelper.newBranchByGlobal(globalSession, branchType, resourceId,
                     applicationData, lockKeys, clientId);
+            // 获取全局锁，获取到的锁会存放到lock_table表中
             branchSessionLock(globalSession, branchSession);
             try {
+                // 向GlobalSession中添加branchSession，内部会向branch_table中插入分支事务信息
                 globalSession.addBranch(branchSession);
             } catch (RuntimeException ex) {
                 branchSessionUnlock(branchSession);
@@ -146,6 +151,7 @@ public abstract class AbstractCore implements Core {
         return true;
     }
 
+    // 提交分支事务，这里会向RM发起BranchCommitRequest，返回branchStatus
     @Override
     public BranchStatus branchCommit(GlobalSession globalSession, BranchSession branchSession) throws TransactionException {
         try {

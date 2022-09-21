@@ -36,6 +36,7 @@ public class TransactionManagerHolder {
 
         static {
             try {
+                //spi加载事务管理器的实现类
                 INSTANCE = EnhancedServiceLoader.load(TransactionManager.class);
                 LOGGER.info("TransactionManager Singleton {}", INSTANCE);
             } catch (Throwable anyEx) {

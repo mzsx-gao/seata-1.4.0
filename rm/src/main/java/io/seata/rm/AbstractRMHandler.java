@@ -80,8 +80,7 @@ public abstract class AbstractRMHandler extends AbstractExceptionHandler
     }
 
     /**
-     * Do branch commit.
-     *
+     * 分支提交
      * @param request  the request
      * @param response the response
      * @throws TransactionException the transaction exception
@@ -107,8 +106,7 @@ public abstract class AbstractRMHandler extends AbstractExceptionHandler
     }
 
     /**
-     * Do branch rollback.
-     *
+     * 分支回滚
      * @param request  the request
      * @param response the response
      * @throws TransactionException the transaction exception

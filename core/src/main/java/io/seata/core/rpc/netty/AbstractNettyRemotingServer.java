@@ -162,6 +162,7 @@ public abstract class AbstractNettyRemotingServer extends AbstractNettyRemoting 
 
         /**
          * Channel read.
+         * 接收客户端数据
          *
          * @param ctx the ctx
          * @param msg the msg

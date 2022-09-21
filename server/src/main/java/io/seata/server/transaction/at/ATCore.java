@@ -41,6 +41,7 @@ public class ATCore extends AbstractCore {
         return BranchType.AT;
     }
 
+    // 获取全局锁，获取到的锁会存放到lock_table表中
     @Override
     protected void branchSessionLock(GlobalSession globalSession, BranchSession branchSession) throws TransactionException {
         if (!branchSession.lock()) {

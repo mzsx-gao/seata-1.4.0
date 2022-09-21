@@ -39,7 +39,7 @@ import static io.seata.common.DefaultValues.DEFAULT_CLIENT_TABLE_META_CHECK_ENAB
 
 /**
  * The type Data source proxy.
- *
+ * 代理数据源，事务提交代码入口
  * @author sharajava
  */
 public class DataSourceProxy extends AbstractDataSourceProxy implements Resource {

@@ -46,13 +46,7 @@ public abstract class AbstractResourceManager implements ResourceManager {
     /**
      * registry branch record
      *
-     * @param branchType the branch type
-     * @param resourceId the resource id
-     * @param clientId   the client id
-     * @param xid        the xid
-     * @param lockKeys   the lock keys
-     * @return
-     * @throws TransactionException
+     * 分支事务注册，发起BranchRegisterRequest请求，返回分支branchId
      */
     @Override
     public Long branchRegister(BranchType branchType, String resourceId, String clientId, String xid, String applicationData, String lockKeys) throws TransactionException {

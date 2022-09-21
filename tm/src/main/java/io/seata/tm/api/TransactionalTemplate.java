@@ -115,23 +115,28 @@ public class TransactionalTemplate {
 
             // set current tx config to holder
             GlobalLockConfig previousConfig = replaceGlobalLockConfig(txInfo);
-
+            /**
+             * 标准的事务处理模式
+             */
             try {
                 // 2. If the tx role is 'GlobalTransactionRole.Launcher', send the request of beginTransaction to TC,
                 //    else do nothing. Of course, the hooks will still be triggered.
+                //开启全局事务
                 beginTransaction(txInfo, tx);
 
                 Object rs;
                 try {
-                    // Do Your Business
+                    // 执行业务逻辑
                     rs = business.execute();
                 } catch (Throwable ex) {
                     // 3. The needed business exception to rollback.
+                    //异常回滚
                     completeTransactionAfterThrowing(txInfo, tx, ex);
                     throw ex;
                 }
 
                 // 4. everything is fine, commit.
+                //提交全局事务
                 commitTransaction(tx);
 
                 return rs;
@@ -172,6 +177,7 @@ public class TransactionalTemplate {
         }
     }
 
+    //异常回滚
     private void completeTransactionAfterThrowing(TransactionInfo txInfo, GlobalTransaction tx, Throwable originalException) throws TransactionalExecutor.ExecutionException {
         //roll back
         if (txInfo != null && txInfo.rollbackOn(originalException)) {
@@ -188,6 +194,7 @@ public class TransactionalTemplate {
         }
     }
 
+    //提交全局事务
     private void commitTransaction(GlobalTransaction tx) throws TransactionalExecutor.ExecutionException {
         try {
             triggerBeforeCommit();
@@ -200,6 +207,7 @@ public class TransactionalTemplate {
         }
     }
 
+    //回滚全局事务
     private void rollbackTransaction(GlobalTransaction tx, Throwable originalException) throws TransactionException, TransactionalExecutor.ExecutionException {
         triggerBeforeRollback();
         tx.rollback();
@@ -209,6 +217,7 @@ public class TransactionalTemplate {
             ? TransactionalExecutor.Code.RollbackRetrying : TransactionalExecutor.Code.RollbackDone, originalException);
     }
 
+    //开启全局事务
     private void beginTransaction(TransactionInfo txInfo, GlobalTransaction tx) throws TransactionalExecutor.ExecutionException {
         try {
             triggerBeforeBegin();

@@ -104,6 +104,7 @@ class NettyClientChannelManager {
         }
         Object lockObj = CollectionUtils.computeIfAbsent(channelLocks, serverAddress, key -> new Object());
         synchronized (lockObj) {
+            // 连接netty服务端
             return doConnect(serverAddress);
         }
     }
@@ -205,6 +206,7 @@ class NettyClientChannelManager {
         channels.put(serverAddress, channel);
     }
 
+    //连接netty服务端
     private Channel doConnect(String serverAddress) {
         Channel channelToServer = channels.get(serverAddress);
         if (channelToServer != null && channelToServer.isActive()) {

@@ -272,6 +272,7 @@ public class BranchSession implements Lockable, Comparable<BranchSession>, Sessi
         return lockHolder;
     }
 
+    //加锁逻辑，获取到的锁会存放到lock_table表中
     @Override
     public boolean lock() throws TransactionException {
         if (this.getBranchType().equals(BranchType.AT)) {

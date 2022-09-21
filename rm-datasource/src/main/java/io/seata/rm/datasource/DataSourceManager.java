@@ -135,12 +135,14 @@ public class DataSourceManager extends AbstractResourceManager implements Initia
         return (DataSourceProxy) dataSourceCache.get(resourceId);
     }
 
+    // 分支提交
     @Override
     public BranchStatus branchCommit(BranchType branchType, String xid, long branchId, String resourceId,
                                      String applicationData) throws TransactionException {
         return asyncWorker.branchCommit(branchType, xid, branchId, resourceId, applicationData);
     }
 
+    // 分支回滚
     @Override
     public BranchStatus branchRollback(BranchType branchType, String xid, long branchId, String resourceId,
                                        String applicationData) throws TransactionException {

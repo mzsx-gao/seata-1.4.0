@@ -80,11 +80,16 @@ public class DataBaseSessionManager extends AbstractSessionManager
     @Override
     public void addGlobalSession(GlobalSession session) throws TransactionException {
         if (StringUtils.isBlank(taskName)) {
+            // 开启全局事务时走这里,global_table表状态为"0"
             boolean ret = transactionStoreManager.writeSession(LogOperation.GLOBAL_ADD, session);
             if (!ret) {
                 throw new StoreException("addGlobalSession failed.");
             }
         } else {
+            /**
+             * 提交时走这里，修改global_table表状态为"1"
+             * update global_table  set status = ?, gmt_modified = now() where xid = ?
+              */
             boolean ret = transactionStoreManager.writeSession(LogOperation.GLOBAL_UPDATE, session);
             if (!ret) {
                 throw new StoreException("addGlobalSession failed.");

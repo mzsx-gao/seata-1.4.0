@@ -50,6 +50,7 @@ public class PreparedStatementProxy extends AbstractPreparedStatementProxy
         super(connectionProxy, targetStatement, targetSQL);
     }
 
+    //sql识别器会根据DML的类型选择相应的execute
     @Override
     public boolean execute() throws SQLException {
         return ExecuteTemplate.execute(this, (statement, args) -> statement.execute());

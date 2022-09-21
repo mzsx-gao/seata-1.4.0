@@ -40,22 +40,27 @@ public abstract class AbstractLockManager implements LockManager {
      */
     protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractLockManager.class);
 
+    // 获取行锁
     @Override
     public boolean acquireLock(BranchSession branchSession) throws TransactionException {
         if (branchSession == null) {
             throw new IllegalArgumentException("branchSession can't be null for memory/file locker.");
         }
-        String lockKey = branchSession.getLockKey();
+        String lockKey = branchSession.getLockKey();//lockKey "表名:主键"
         if (StringUtils.isNullOrEmpty(lockKey)) {
             // no lock
             return true;
         }
         // get locks of branch
+        // 收集行锁
         List<RowLock> locks = collectRowLocks(branchSession);
         if (CollectionUtils.isEmpty(locks)) {
             // no lock
             return true;
         }
+        // 支持三种模式，file，db，redis
+        // 为什么保存到lock_table意味着加锁成功？
+        // RowKey不冲突
         return getLocker(branchSession).acquireLock(locks);
     }
 

@@ -194,6 +194,7 @@ public class GlobalSession implements SessionLifecycle, SessionStorable {
         clean();
 
         for (SessionLifecycleListener lifecycleListener : lifecycleListeners) {
+            // 删除全局事务信息(global_table)
             lifecycleListener.onEnd(this);
         }
 
@@ -242,11 +243,14 @@ public class GlobalSession implements SessionLifecycle, SessionStorable {
         add(branchSession);
     }
 
+    // 删除分支事务信息(删除branch_table)，释放全局锁（删除lock_table）
     @Override
     public void removeBranch(BranchSession branchSession) throws TransactionException {
+        // 释放全局锁，删除lock_table表记录
         if (!branchSession.unlock()) {
             throw new TransactionException("Unlock branch lock failed!");
         }
+        // 删除分支事务信息(删除branch_table)
         for (SessionLifecycleListener lifecycleListener : lifecycleListeners) {
             lifecycleListener.onRemoveBranch(this, branchSession);
         }
@@ -648,7 +652,9 @@ public class GlobalSession implements SessionLifecycle, SessionStorable {
 
     public void asyncCommit() throws TransactionException {
         this.addSessionLifecycleListener(SessionHolder.getAsyncCommittingSessionManager());
+        //修改global_table表事务状态为"1"
         SessionHolder.getAsyncCommittingSessionManager().addGlobalSession(this);
+        //修改global_table表事务状态为"8"（GlobalStatus.AsyncCommitting）
         this.changeStatus(GlobalStatus.AsyncCommitting);
     }
 

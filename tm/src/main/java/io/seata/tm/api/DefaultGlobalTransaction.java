@@ -87,6 +87,7 @@ public class DefaultGlobalTransaction implements GlobalTransaction {
         begin(timeout, DEFAULT_GLOBAL_TX_NAME);
     }
 
+    //开启全局事务
     @Override
     public void begin(int timeout, String name) throws TransactionException {
         if (role != GlobalTransactionRole.Launcher) {
@@ -102,14 +103,18 @@ public class DefaultGlobalTransaction implements GlobalTransaction {
             throw new IllegalStateException("Global transaction already exists," +
                 " can't begin a new global transaction, currentXid = " + currentXid);
         }
+        //获取全局事务id
         xid = transactionManager.begin(null, null, name, timeout);
+        //设置全局事务为begin状态
         status = GlobalStatus.Begin;
+        //绑定xid到RootContext
         RootContext.bind(xid);
         if (LOGGER.isInfoEnabled()) {
-            LOGGER.info("Begin new global transaction [{}]", xid);
+            LOGGER.info("开始新的全局事务，事务id: [{}]", xid);
         }
     }
 
+    //提交事务
     @Override
     public void commit() throws TransactionException {
         if (role == GlobalTransactionRole.Participant) {
@@ -124,6 +129,7 @@ public class DefaultGlobalTransaction implements GlobalTransaction {
         try {
             while (retry > 0) {
                 try {
+                    // 异常重试，默认5次
                     status = transactionManager.commit(xid);
                     break;
                 } catch (Throwable ex) {
@@ -144,6 +150,7 @@ public class DefaultGlobalTransaction implements GlobalTransaction {
         }
     }
 
+    //回滚事务
     @Override
     public void rollback() throws TransactionException {
         if (role == GlobalTransactionRole.Participant) {
@@ -159,6 +166,7 @@ public class DefaultGlobalTransaction implements GlobalTransaction {
         try {
             while (retry > 0) {
                 try {
+                    // 异常重试，默认5次
                     status = transactionManager.rollback(xid);
                     break;
                 } catch (Throwable ex) {

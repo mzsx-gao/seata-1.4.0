@@ -91,11 +91,11 @@ public class DefaultCore implements Core {
         coreMap.put(branchType, core);
     }
 
+    // 注册分支事务
     @Override
     public Long branchRegister(BranchType branchType, String resourceId, String clientId, String xid,
                                String applicationData, String lockKeys) throws TransactionException {
-        return getCore(branchType).branchRegister(branchType, resourceId, clientId, xid,
-            applicationData, lockKeys);
+        return getCore(branchType).branchRegister(branchType, resourceId, clientId, xid, applicationData, lockKeys);
     }
 
     @Override
@@ -115,18 +115,20 @@ public class DefaultCore implements Core {
         return getCore(branchSession.getBranchType()).branchCommit(globalSession, branchSession);
     }
 
+    //分支事务回滚，RM那一端主要是删除undo_log表
     @Override
     public BranchStatus branchRollback(GlobalSession globalSession, BranchSession branchSession) throws TransactionException {
         return getCore(branchSession.getBranchType()).branchRollback(globalSession, branchSession);
     }
 
+    // 开启全局事务
     @Override
     public String begin(String applicationId, String transactionServiceGroup, String name, int timeout)
         throws TransactionException {
-        GlobalSession session = GlobalSession.createGlobalSession(applicationId, transactionServiceGroup, name,
-            timeout);
+        // 生成全局session
+        GlobalSession session = GlobalSession.createGlobalSession(applicationId, transactionServiceGroup, name, timeout);
         session.addSessionLifecycleListener(SessionHolder.getRootSessionManager());
-
+        // 存储GlobalSession，seata支持三种方式,file,redis,db，最终会存放到global_table中
         session.begin();
 
         // transaction start event
@@ -136,6 +138,7 @@ public class DefaultCore implements Core {
         return session.getXid();
     }
 
+    // 提交全局事务
     @Override
     public GlobalStatus commit(String xid) throws TransactionException {
         GlobalSession globalSession = SessionHolder.findGlobalSession(xid);
@@ -150,6 +153,7 @@ public class DefaultCore implements Core {
             globalSession.closeAndClean();
             if (globalSession.getStatus() == GlobalStatus.Begin) {
                 if (globalSession.canBeCommittedAsync()) {
+                    // AT 模式默认异步提交，异步提交时这里的globalSession的状态是GlobalStatus.AsyncCommitting
                     globalSession.asyncCommit();
                     return false;
                 } else {
@@ -173,6 +177,10 @@ public class DefaultCore implements Core {
         }
     }
 
+    /**
+     * 真正的全局事务提交逻辑,如果是AT模式，则上面的commit方法返回GlobalStatus.AsyncCommitting状态，然后在DefaultCoordinator类
+     * 中的定时任务中调用调用handleAsyncCommitting方法，最终调到这里进行全局事务的提交
+      */
     @Override
     public boolean doGlobalCommit(GlobalSession globalSession, boolean retrying) throws TransactionException {
         boolean success = true;
@@ -195,10 +203,12 @@ public class DefaultCore implements Core {
                     continue;
                 }
                 try {
+                    // 1.提交分支事务，这里会向RM发起BranchCommitRequest，返回branchStatus,TM那一端会删除本地表中的undo_log记录
                     BranchStatus branchStatus = getCore(branchSession.getBranchType()).branchCommit(globalSession, branchSession);
 
                     switch (branchStatus) {
                         case PhaseTwo_Committed:
+                            // 2.删除分支事务信息(删除branch_table)，释放全局锁（删除lock_table）
                             globalSession.removeBranch(branchSession);
                             continue;
                         case PhaseTwo_CommitFailed_Unretryable:
@@ -241,6 +251,7 @@ public class DefaultCore implements Core {
             }
         }
         if (success && globalSession.getBranchSessions().isEmpty()) {
+            //3.删除全局事务信息（删除global_table的信息）
             SessionHelper.endCommitted(globalSession);
 
             // committed event
@@ -253,8 +264,10 @@ public class DefaultCore implements Core {
         return success;
     }
 
+    // tc端回滚全局事务
     @Override
     public GlobalStatus rollback(String xid) throws TransactionException {
+        //db模式从数据库获取GlobalSession信息
         GlobalSession globalSession = SessionHolder.findGlobalSession(xid);
         if (globalSession == null) {
             return GlobalStatus.Finished;
@@ -264,6 +277,7 @@ public class DefaultCore implements Core {
         boolean shouldRollBack = SessionHolder.lockAndExecute(globalSession, () -> {
             globalSession.close(); // Highlight: Firstly, close the session, then no more branch can be registered.
             if (globalSession.getStatus() == GlobalStatus.Begin) {
+                // 修改事务状态为GlobalStatus.Rollbacking-4
                 globalSession.changeStatus(GlobalStatus.Rollbacking);
                 return true;
             }
@@ -272,11 +286,12 @@ public class DefaultCore implements Core {
         if (!shouldRollBack) {
             return globalSession.getStatus();
         }
-
+        // 执行回滚逻辑
         doGlobalRollback(globalSession, false);
         return globalSession.getStatus();
     }
 
+    // 真正的全局事务回滚逻辑
     @Override
     public boolean doGlobalRollback(GlobalSession globalSession, boolean retrying) throws TransactionException {
         boolean success = true;
@@ -294,18 +309,23 @@ public class DefaultCore implements Core {
                     continue;
                 }
                 try {
+                    //分支事务回滚，返回BranchStatus
                     BranchStatus branchStatus = branchRollback(globalSession, branchSession);
                     switch (branchStatus) {
                         case PhaseTwo_Rollbacked:
+                            // 删除分支事务信息(删除branch_table)，释放全局锁（删除lock_table）
                             globalSession.removeBranch(branchSession);
-                            LOGGER.info("Rollback branch transaction successfully, xid = {} branchId = {}", globalSession.getXid(), branchSession.getBranchId());
+                            LOGGER.info("Rollback branch transaction successfully, xid = {} branchId = {}",
+                                globalSession.getXid(), branchSession.getBranchId());
                             continue;
                         case PhaseTwo_RollbackFailed_Unretryable:
                             SessionHelper.endRollbackFailed(globalSession);
-                            LOGGER.info("Rollback branch transaction fail and stop retry, xid = {} branchId = {}", globalSession.getXid(), branchSession.getBranchId());
+                            LOGGER.info("Rollback branch transaction fail and stop retry, xid = {} branchId = {}",
+                                globalSession.getXid(), branchSession.getBranchId());
                             return false;
                         default:
-                            LOGGER.info("Rollback branch transaction fail and will retry, xid = {} branchId = {}", globalSession.getXid(), branchSession.getBranchId());
+                            LOGGER.info("Rollback branch transaction fail and will retry, xid = {} branchId = {}",
+                                globalSession.getXid(), branchSession.getBranchId());
                             if (!retrying) {
                                 globalSession.queueToRetryRollback();
                             }
@@ -335,6 +355,7 @@ public class DefaultCore implements Core {
             }
         }
         if (success) {
+            //删除全局事务信息
             SessionHelper.endRollbacked(globalSession);
 
             // rollbacked event

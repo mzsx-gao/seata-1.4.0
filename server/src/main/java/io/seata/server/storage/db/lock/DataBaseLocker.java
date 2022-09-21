@@ -49,6 +49,7 @@ public class DataBaseLocker extends AbstractLocker {
         lockStore = new LockStoreDataBaseDAO(logStoreDataSource);
     }
 
+    // 获取锁，能够保存到数据库，rowKey不冲突，就认为获取锁成功了
     @Override
     public boolean acquireLock(List<RowLock> locks) {
         if (CollectionUtils.isEmpty(locks)) {

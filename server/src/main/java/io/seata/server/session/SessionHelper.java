@@ -81,7 +81,7 @@ public class SessionHelper {
 
     /**
      * End committed.
-     *
+     * 最终完成提交动作，这里就是删除global_table
      * @param globalSession the global session
      * @throws TransactionException the transaction exception
      */

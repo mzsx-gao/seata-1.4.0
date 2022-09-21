@@ -126,7 +126,7 @@ public class AsyncWorker implements ResourceManagerInbound {
         ScheduledExecutorService timerExecutor = new ScheduledThreadPoolExecutor(1, new NamedThreadFactory("AsyncWorker", 1, true));
         timerExecutor.scheduleAtFixedRate(() -> {
             try {
-
+                // 定时监听，每隔1秒执行分支提交
                 doBranchCommits();
 
             } catch (Throwable e) {
@@ -136,6 +136,7 @@ public class AsyncWorker implements ResourceManagerInbound {
         }, 10, 1000 * 1, TimeUnit.MILLISECONDS);
     }
 
+    // 分支提交，内部其实主要就是删除undo_log记录
     private void doBranchCommits() {
         if (ASYNC_COMMIT_BUFFER.isEmpty()) {
             return;
@@ -189,6 +190,7 @@ public class AsyncWorker implements ResourceManagerInbound {
                 }
 
                 try {
+                    // 删除undo_log记录
                     UndoLogManagerFactory.getUndoLogManager(dataSourceProxy.getDbType()).batchDeleteUndoLog(xids,
                         branchIds, conn);
                 } catch (Exception ex) {

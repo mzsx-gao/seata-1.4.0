@@ -103,6 +103,7 @@ public abstract class AbstractConnectionProxy implements Connection {
         return new StatementProxy(this, targetStatement);
     }
 
+    //获取PreparedStatement
     @Override
     public PreparedStatement prepareStatement(String sql) throws SQLException {
         String dbType = getDbType();

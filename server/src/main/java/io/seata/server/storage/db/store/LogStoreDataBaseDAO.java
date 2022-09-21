@@ -184,7 +184,7 @@ public class LogStoreDataBaseDAO implements LogStore {
             IOUtil.close(rs, ps, conn);
         }
     }
-
+    //插入全局事务信息GlobalTransactionDO到global_table表
     @Override
     public boolean insertGlobalTransactionDO(GlobalTransactionDO globalTransactionDO) {
         String sql = LogStoreSqlsFactory.getLogStoreSqls(dbType).getInsertGlobalTransactionSQL(globalTable);
@@ -214,6 +214,10 @@ public class LogStoreDataBaseDAO implements LogStore {
         }
     }
 
+    /**
+     * 修改全局事务表记录状态
+     * update global_table  set status = ?,gmt_modified = now() where xid = ?
+     */
     @Override
     public boolean updateGlobalTransactionDO(GlobalTransactionDO globalTransactionDO) {
         String sql = LogStoreSqlsFactory.getLogStoreSqls(dbType).getUpdateGlobalTransactionStatusSQL(globalTable);

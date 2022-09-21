@@ -136,6 +136,7 @@ public abstract class AbstractNettyRemotingClient extends AbstractNettyRemoting 
             new NettyPoolableFactory(this, clientBootstrap), getPoolKeyFunction(), nettyClientConfig);
     }
 
+    //请求netty服务端
     @Override
     public Object sendSyncRequest(Object msg) throws TimeoutException {
         String serverAddress = loadBalance(getTransactionServiceGroup(), msg);
@@ -178,7 +179,9 @@ public abstract class AbstractNettyRemotingClient extends AbstractNettyRemoting 
             }
 
         } else {
+            //获取NioSocketChannel
             Channel channel = clientChannelManager.acquireChannel(serverAddress);
+            //发送请求
             return super.sendSync(channel, rpcMessage, timeoutMillis);
         }
 
